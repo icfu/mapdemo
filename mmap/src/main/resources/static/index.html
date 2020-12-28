@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>药房查询</title>
+
+    <meta charset="utf-8"/>
+    <meta name="description" content=""/>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+
+    <style type="text/css">
+        body, html{width: 100%;height: 100%;margin:0;font-family:"微软雅黑";font-size:14px;}
+        #allmap{height:600px;width:100%;}
+        #r-result{width:100%;}
+    </style>
+
+    <script type="text/javascript" src="//api.map.baidu.com/api?v=2.0&ak=CLOyAOkKbxv2Er1nv3GVyQsLNEMaSMN4"></script>
+
+    <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/4.1.0/css/bootstrap.min.css" rel="external nofollow" target="_blank" >
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+</head>
+<body>
+
+<div class="container unauthenticated">
+    <a href="/oauth2/authorization/github">Please Login With Github</a>
+</div>
+
+<div class="container authenticated" style="display:none">
+    当前访问用户 : <span id="user"></span>
+
+    <div id="r-result">请输入您查找的药房名称:
+        <input type="text" id="suggestId" size="20" value="" style="width:150px;" />
+        <input type="button" value="查询" id="searchBtn" size="14"/>
+    </div>
+
+    <table class="table table-striped">
+        <thead>
+        <th>用户名</th>
+        <th>查询关键字</th>
+        <th>查询次数</th>
+        <th>最后一次查询时间</th>
+        </thead>
+        <tbody id="recordList">
+        </tbody>
+    </table>
+
+    <div id="allmap"></div>
+</div>
+
+</body>
+</html>
+<script>
+    // 百度地图API功能
+    var map = new BMap.Map("allmap");            // 创建Map实例
+    var mPoint = new BMap.Point(116.404, 39.915);
+    map.enableScrollWheelZoom();
+    map.centerAndZoom("上海",12);
+
+    var local = new BMap.LocalSearch(map, {
+        renderOptions:{map: map}
+    });
+
+    $.get("/user", function(data) {
+        $("#user").html(data.name);
+        $(".unauthenticated").hide();
+        $(".authenticated").show();
+    });
+
+    $("#searchBtn").click(function(e){
+        var searchValue =  $("#suggestId").val();
+        var userId =  $("#user").text();
+
+        var record = {
+            "userId":userId,
+            "searchValue":searchValue
+        };
+
+        console.log(record);
+
+        local.search(searchValue);
+
+        $.ajax({
+            url: '/records',
+            type: 'POST',
+            contentType: 'application/json;charset=UTF-8',
+            dataType: "json",
+            data:  JSON.stringify(record),
+            success: function(d) {
+                local.searchNearby(searchValue,mPoint,1000);
+
+                $.get("/records", function(records){
+                    var trs = null;
+
+                    for (var i = 0; i < records.length; i++) {
+                        trs = trs + `
+                          <tr>
+                            <td>${records[i].userId}</td>
+                            <td>${records[i].searchValue}</td>
+                            <td>${records[i].count}</td>
+                            <td>${records[i].updatedDate}</td>
+                          </tr>
+                        `;
+                    }
+
+                    console.log(trs);
+                    $("#recordList").html(trs);
+                })
+            }
+        });
+
+    });
+
+</script>
