@@ -3,6 +3,7 @@ package com.cfu.mmap;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,7 +23,8 @@ public class SearchRecordService {
 
     @RequestMapping(method = RequestMethod.GET)
     public List<SearchRecord> findAll(){
-        return repository.findAll();
+        Sort sort = Sort.by(Sort.Direction.DESC, "count", "updatedDate");
+        return repository.findAll(sort);
     }
 
     @RequestMapping(method = RequestMethod.POST)
